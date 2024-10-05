@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 func parseCommandLineArgs() (string, []string, error) {
@@ -23,6 +25,7 @@ func parseCommandLineArgs() (string, []string, error) {
 		} else if strings.HasPrefix(argsOfProgram[i], "-") {
 			options = append(options, argsOfProgram[i])
 		}
+
 	}
 
 	if fileName == "" {
@@ -57,9 +60,14 @@ func countFileLines(path string) int {
 	if data == nil {
 		return 0
 	}
-	lines := strings.Split(string(data), "\n")
 
-	return len(lines)
+	// Counts all new lines in file
+	// because strings.Count actually
+	// ends up appending a new line at the end of the file
+	// and we don't want that
+	lines := bytes.Count(data, []byte("\n"))
+
+	return lines
 }
 
 // Use when "-w" option is provided
@@ -78,8 +86,31 @@ func countFileWords(path string) int {
 	return len(words)
 }
 
+// Use when "-m" option is provided
+// Counts all characters in file
+// based on locale
+// If the current locale does not support multibyte characters this will match the -c option.
+func countFileCharactersMultibyte(path string) int {
+	data := readFile(path)
+	if data == nil {
+		return 0
+	}
+
+	// Counts all characters in file including multibyte characters
+	// That's what utf8.RuneCountInString does
+	return utf8.RuneCountInString(string(data))
+}
+
 func outputParser(fileName string, options []string) string {
 	var finalOutput string = ""
+
+	if len(options) == 0 {
+		finalOutput += fmt.Sprintf("%d", countFileLines(fileName)) + " "
+		finalOutput += fmt.Sprintf("%d", countFileWords(fileName)) + " "
+		finalOutput += fmt.Sprintf("%d", countFileBytes(fileName)) + " "
+
+		return finalOutput + fileName
+	}
 
 	for i := 0; i < len(options); i++ {
 		if options[i] == "-c" {
@@ -90,8 +121,12 @@ func outputParser(fileName string, options []string) string {
 			finalOutput += fmt.Sprintf("%d", countFileLines(fileName)) + " "
 		}
 
-		if options[i] == "-m" {
+		if options[i] == "-w" {
 			finalOutput += fmt.Sprintf("%d", countFileWords(fileName)) + " "
+		}
+
+		if options[i] == "-m" {
+			finalOutput += fmt.Sprintf("%d", countFileCharactersMultibyte(fileName)) + " "
 		}
 	}
 
