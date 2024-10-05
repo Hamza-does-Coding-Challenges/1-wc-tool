@@ -32,6 +32,7 @@ func parseCommandLineArgs() (string, []string, error) {
 	return fileName, options, nil
 }
 
+// Simply read file and return contents
 func readFile(path string) []byte {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -50,6 +51,7 @@ func countFileBytes(path string) int {
 	return len(data)
 }
 
+// Used when "-l" option is provided
 func countFileLines(path string) int {
 	data := readFile(path)
 	if data == nil {
@@ -58,6 +60,22 @@ func countFileLines(path string) int {
 	lines := strings.Split(string(data), "\n")
 
 	return len(lines)
+}
+
+// Use when "-w" option is provided
+func countFileWords(path string) int {
+	data := readFile(path)
+
+	if data == nil {
+		return 0
+	}
+
+	// Split data by whitespace and return number of words
+	// Using strings.Fields() here to account for multiple
+	// white spaces between words
+	words := strings.Fields(string(data))
+
+	return len(words)
 }
 
 func outputParser(fileName string, options []string) string {
@@ -70,6 +88,10 @@ func outputParser(fileName string, options []string) string {
 
 		if options[i] == "-l" {
 			finalOutput += fmt.Sprintf("%d", countFileLines(fileName)) + " "
+		}
+
+		if options[i] == "-m" {
+			finalOutput += fmt.Sprintf("%d", countFileWords(fileName)) + " "
 		}
 	}
 
